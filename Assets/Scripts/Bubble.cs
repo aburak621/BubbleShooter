@@ -12,7 +12,7 @@ public class Bubble : MonoBehaviour
         Green
     }
 
-    public Vector2Int gridLocation;
+    public Vector2Int gridCoordinate;
     public bool throwingBubble = false;
 
     [SerializeField] private BubbleColor bubbleColor = BubbleColor.Red;
@@ -38,9 +38,7 @@ public class Bubble : MonoBehaviour
             return;
         }
 
-        Debug.Log("bruh");
         _parentGrid.HandleBubble(this, other.transform.GetComponent<Bubble>());
-        Debug.Log("moment");
     }
 
     private void Update()
@@ -81,5 +79,10 @@ public class Bubble : MonoBehaviour
         }
 
         return this;
+    }
+
+    public BubbleColor GetBubbleColor()
+    {
+        return bubbleColor;
     }
 }
