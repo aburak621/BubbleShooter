@@ -50,7 +50,7 @@ public class BubbleGrid : MonoBehaviour
     }
 
     /**
-     * Calculates what size the bubbles should be according to the camera's size and column count
+     * Calculates what size the bubbles should be according to the camera's size and column count.
      */
     private void CalculateSizes()
     {
@@ -62,7 +62,7 @@ public class BubbleGrid : MonoBehaviour
     }
 
     /**
-     * Sets the grid's initial position according to its height and width
+     * Sets the grid's initial position according to its height and width.
      */
     private void SetInitialGridPosition()
     {
@@ -80,7 +80,7 @@ public class BubbleGrid : MonoBehaviour
     }
 
     /**
-     * Fills the grid data randomly
+     * Fills the grid data randomly.
      */
     private void FillGridRandomly()
     {
@@ -97,7 +97,7 @@ public class BubbleGrid : MonoBehaviour
     }
 
     /**
-     * Initializes the Bubble objects and adds them to the grid
+     * Initializes the Bubble objects and adds them to the grid.
      */
     private void InitializeGrid()
     {
@@ -119,7 +119,10 @@ public class BubbleGrid : MonoBehaviour
         }
     }
 
-    public void HandleBubble(Bubble thrownBubble, Bubble gridBubble)
+    /**
+     * Places the new bubble to the correct position in the grid, and resolve matches.
+     */
+    public void HandleNewBubble(Bubble thrownBubble, Bubble gridBubble)
     {
         // Calculate in which angle the ball hit
         Vector2 differenceVector = thrownBubble.transform.position - gridBubble.transform.position;
@@ -132,7 +135,7 @@ public class BubbleGrid : MonoBehaviour
 
         // Place it to the grid accordingly
         // Sides start from the hexagon's right side and goes counter clockwise
-        // 0 => right, 1 => upper right, 2 => upper left, 3 => left, 4 => lower left, 5 => lower right, 
+        // 0 => right, 1 => upper right, 2 => upper left, 3 => left, 4 => lower left, 5 => lower right
         float side = ((angleDegrees + 30) % 360) / 60;
         int sideIndex = (int)((angleDegrees + 30) % 360) / 60;
         // If that side is not empty we will offset it to the closes other side
@@ -149,12 +152,12 @@ public class BubbleGrid : MonoBehaviour
         }
 
         // If the hex is not empty or out of bounds, find the closest hex
-        if (!CheckForBounds(newBubbleCoordinate) || GetBubble(newBubbleCoordinate) != null)
+        for (int i = 1; i <= 6 && !CheckForBounds(newBubbleCoordinate) || GetBubble(newBubbleCoordinate) != null; i++)
         {
             newBubbleCoordinate = gridBubble.gridCoordinate +
                                   (gridBubble.gridCoordinate.x % 2 == 0
-                                      ? _evenNeighborOffsets[(sideIndex + sideOffset) % 6]
-                                      : _oddNeighborOffsets[(sideIndex + sideOffset) % 6]);
+                                      ? _evenNeighborOffsets[(sideIndex + sideOffset * i) % 6]
+                                      : _oddNeighborOffsets[(sideIndex + sideOffset * i) % 6]);
         }
 
         thrownBubble.transform.SetParent(transform);
@@ -166,22 +169,40 @@ public class BubbleGrid : MonoBehaviour
         HandleMatch(thrownBubble.gridCoordinate);
     }
 
+    /**
+     * Checks for connected bubbles to the given Bubble and destroys them if there is more than 3 match.
+     * Then checks for floating bubbles.
+     */
     private void HandleMatch(Vector2Int thrownBubbleCoord)
     {
-        List<Vector2Int> visited = new List<Vector2Int>();
+        HashSet<Vector2Int> visited = new HashSet<Vector2Int>();
 
-        DfsMatch(thrownBubbleCoord, visited);
+        DfsIslands(thrownBubbleCoord, visited);
 
+        // DEBUG
         foreach (Vector2Int bruh in visited)
         {
             Debug.Log(bruh);
         }
 
-        // Find the separated islands
-        // Remove them, maybe animations
+        if (visited.Count <= 3)
+        {
+            return;
+        }
+
+        foreach (Vector2Int bubbleCoord in visited)
+        {
+            DestroyBubble(GetBubble(bubbleCoord));
+        }
+
+        ClearFloatingIslands();
     }
 
-    private void DfsMatch(Vector2Int bubbleCoord, List<Vector2Int> visited)
+    /**
+     * Using a depth first search algorithm, finds the connected islands to the given Bubble.
+     * Can be constrained to check to only the same colored bubbles.
+     */
+    private void DfsIslands(Vector2Int bubbleCoord, HashSet<Vector2Int> visited, bool searchForSameColor = true)
     {
         if (visited.Contains(bubbleCoord))
         {
@@ -201,13 +222,61 @@ public class BubbleGrid : MonoBehaviour
                 continue;
             }
 
-            if (GetBubble(bubbleCoord).GetBubbleColor() == neighbor.GetBubbleColor())
+            if (!searchForSameColor || GetBubble(bubbleCoord).GetBubbleColor() == neighbor.GetBubbleColor())
             {
-                DfsMatch(neighborCoord, visited);
+                DfsIslands(neighborCoord, visited, searchForSameColor);
             }
         }
     }
 
+    /**
+     * Finds the floating islands by finding the bubbles that are not connected to the root (topmost) bubbles.
+     * Then destroys them.
+     */
+    private void ClearFloatingIslands()
+    {
+        HashSet<Vector2Int> connectedToRoot = new HashSet<Vector2Int>();
+
+        foreach (Bubble rootBubble in _bubbleGrid[0])
+        {
+            DfsIslands(rootBubble.gridCoordinate, connectedToRoot, false);
+        }
+
+        List<Bubble> floatingBubbles = new List<Bubble>();
+        foreach (List<Bubble> row in _bubbleGrid)
+        {
+            foreach (Bubble bubble in row)
+            {
+                if (bubble == null)
+                {
+                    continue;
+                }
+
+                if (!connectedToRoot.Contains(bubble.gridCoordinate))
+                {
+                    floatingBubbles.Add(bubble);
+                }
+            }
+        }
+
+        foreach (Bubble floatingBubble in floatingBubbles)
+        {
+            DestroyBubble(floatingBubble);
+        }
+    }
+
+    /**
+     * Destroys the bubble object and removes it from the grid.
+     */
+    private void DestroyBubble(Bubble bubble)
+    {
+        SetBubble(bubble.gridCoordinate, null);
+        Destroy(bubble.gameObject);
+    }
+
+    /**
+     * Adds an empty row to the end of the grid.
+     */
     private void AddEmptyRow()
     {
         List<Bubble> row = new List<Bubble>();
@@ -220,6 +289,9 @@ public class BubbleGrid : MonoBehaviour
         rowCount = _bubbleGrid.Count;
     }
 
+    /**
+     * Returns the relative position to the grid for the specified cell coordinates.
+     */
     private Vector3 CalculateLocalPosition(int rowNum, int colNum)
     {
         // Offset by one if we are on an odd row
@@ -230,22 +302,30 @@ public class BubbleGrid : MonoBehaviour
         return new Vector3(localX, localY);
     }
 
+    /**
+     * Returns if the coordinates are inside the grid bounds.
+     */
     private bool CheckForBounds(Vector2Int coord)
     {
         return coord.x >= 0 && coord.x < rowCount && coord.y >= 0 && coord.y < colCount;
     }
 
+    /**
+     * Returns the Bubble object in the given coordinates. If it is empty, returns null.
+     */
     public Bubble GetBubble(Vector2Int coord)
     {
         if (CheckForBounds(coord))
         {
-            // Debug.Log("CoordX: " + coord.x + "CoordY: " + coord.y + "colCount: " + colCount + "rowCount: " + rowCount);
             return _bubbleGrid[coord.x][coord.y];
         }
 
         return null;
     }
 
+    /**
+     * Puts the given Bubble object to the specified coordinates in the grid.
+     */
     public void SetBubble(Vector2Int coord, Bubble bubble)
     {
         _bubbleGrid[coord.x][coord.y] = bubble;

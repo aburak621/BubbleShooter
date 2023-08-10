@@ -38,7 +38,7 @@ public class Bubble : MonoBehaviour
             return;
         }
 
-        _parentGrid.HandleBubble(this, other.transform.GetComponent<Bubble>());
+        _parentGrid.HandleNewBubble(this, other.transform.GetComponent<Bubble>());
     }
 
     private void Update()
@@ -50,7 +50,9 @@ public class Bubble : MonoBehaviour
         }
     }
 
-    // Change the sprite color in the editor when the bubbleColor enum changes
+    /**
+     * Change the sprite color in the editor when the bubbleColor enum changes.
+     */
     private void OnValidate()
     {
         if (_spriteRenderer == null)
@@ -61,7 +63,9 @@ public class Bubble : MonoBehaviour
         SetBubbleColor(bubbleColor);
     }
 
-    // Change the color of the SpriteRenderer according to the bubbleColor enum
+    /**
+     * Change the color of the SpriteRenderer according to the bubbleColor enum.
+     */
     public Bubble SetBubbleColor(BubbleColor color)
     {
         bubbleColor = color;
@@ -81,6 +85,9 @@ public class Bubble : MonoBehaviour
         return this;
     }
 
+    /**
+     * Returns the bubbleColor.
+     */
     public BubbleColor GetBubbleColor()
     {
         return bubbleColor;
