@@ -10,11 +10,12 @@ public class BubbleGrid : MonoBehaviour
     [SerializeField] private int rowCount = 11;
     [SerializeField] private int colCount = 9;
 
-    private float hexInnerRadius;
-    private float hexOuterRadius;
+    public event EventHandler BubblePlaced;
+
+    private float _hexInnerRadius;
+    private float _hexOuterRadius;
     private List<List<Bubble.BubbleColor>> _gridData = new();
     private List<List<Bubble>> _bubbleGrid = new();
-
     private Camera _mainCamera;
 
     // Neighbors start from right and go counter clockwise
@@ -48,16 +49,18 @@ public class BubbleGrid : MonoBehaviour
         FillGridRandomly();
         InitializeGrid();
     }
+    
+    // TODO: Move the grid up AND down. Stop bubbles from going past the first row. 
 
     /**
      * Calculates what size the bubbles should be according to the camera's size and column count.
      */
     private void CalculateSizes()
     {
-        hexInnerRadius = _mainCamera.orthographicSize * _mainCamera.aspect / (colCount + 0.5f);
-        hexOuterRadius = hexInnerRadius * 2 / Mathf.Sqrt(3);
+        _hexInnerRadius = _mainCamera.orthographicSize * _mainCamera.aspect / (colCount + 0.5f);
+        _hexOuterRadius = _hexInnerRadius * 2 / Mathf.Sqrt(3);
 
-        float bubbleScale = hexInnerRadius / bubblePrefab.GetComponent<SpriteRenderer>().sprite.bounds.extents.x;
+        float bubbleScale = _hexInnerRadius / bubblePrefab.GetComponent<SpriteRenderer>().sprite.bounds.extents.x;
         bubblePrefab.transform.localScale = new Vector3(bubbleScale, bubbleScale, 1.0f);
     }
 
@@ -66,14 +69,14 @@ public class BubbleGrid : MonoBehaviour
      */
     private void SetInitialGridPosition()
     {
-        float gridX = -_mainCamera.orthographicSize * _mainCamera.aspect + hexInnerRadius;
-        float gridY = _mainCamera.orthographicSize - hexInnerRadius;
-        float gridHeight = (rowCount - 1) * hexOuterRadius * 3 / 2 + hexInnerRadius;
+        float gridX = -_mainCamera.orthographicSize * _mainCamera.aspect + _hexInnerRadius;
+        float gridY = _mainCamera.orthographicSize - _hexInnerRadius;
+        float gridHeight = (rowCount - 1) * _hexOuterRadius * 3 / 2 + _hexInnerRadius;
         if (gridHeight > _mainCamera.orthographicSize)
         {
-            float bruh = (int)((_mainCamera.orthographicSize - hexInnerRadius * 2) / (hexOuterRadius * 3 / 2)) *
-                hexOuterRadius * 3 / 2;
-            gridY += gridHeight - bruh - hexInnerRadius;
+            float gridOffset = (int)((_mainCamera.orthographicSize - _hexInnerRadius * 2) / (_hexOuterRadius * 3 / 2)) *
+                _hexOuterRadius * 3 / 2;
+            gridY += gridHeight - gridOffset - _hexInnerRadius;
         }
 
         transform.position = new Vector3(gridX, gridY, 0.0f);
@@ -89,7 +92,7 @@ public class BubbleGrid : MonoBehaviour
             List<Bubble.BubbleColor> row = new List<Bubble.BubbleColor>();
             for (int j = 0; j < colCount; j++)
             {
-                row.Add((Bubble.BubbleColor)Random.Range(0, 3));
+                row.Add((Bubble.BubbleColor)Random.Range(0, Enum.GetValues(typeof(Bubble.BubbleColor)).Length));
             }
 
             _gridData.Add(row);
@@ -162,11 +165,15 @@ public class BubbleGrid : MonoBehaviour
 
         thrownBubble.transform.SetParent(transform);
         thrownBubble.transform.localPosition = CalculateLocalPosition(newBubbleCoordinate.x, newBubbleCoordinate.y);
-        thrownBubble.throwingBubble = false;
+        thrownBubble.currentBubble = false;
+        thrownBubble.thrown = false;
+        thrownBubble.GetComponent<Rigidbody2D>().velocity = Vector2.zero;
         thrownBubble.gridCoordinate = newBubbleCoordinate;
         SetBubble(thrownBubble.gridCoordinate, thrownBubble);
 
         HandleMatch(thrownBubble.gridCoordinate);
+        
+        BubblePlaced?.Invoke(this, EventArgs.Empty);
     }
 
     /**
@@ -179,13 +186,7 @@ public class BubbleGrid : MonoBehaviour
 
         DfsIslands(thrownBubbleCoord, visited);
 
-        // DEBUG
-        foreach (Vector2Int bruh in visited)
-        {
-            Debug.Log(bruh);
-        }
-
-        if (visited.Count <= 3)
+        if (visited.Count < 3)
         {
             return;
         }
@@ -239,6 +240,11 @@ public class BubbleGrid : MonoBehaviour
 
         foreach (Bubble rootBubble in _bubbleGrid[0])
         {
+            if (rootBubble == null)
+            {
+                continue;
+            }
+            
             DfsIslands(rootBubble.gridCoordinate, connectedToRoot, false);
         }
 
@@ -295,9 +301,9 @@ public class BubbleGrid : MonoBehaviour
     private Vector3 CalculateLocalPosition(int rowNum, int colNum)
     {
         // Offset by one if we are on an odd row
-        float rowOffset = rowNum % 2 == 0 ? 0 : hexInnerRadius;
-        float localX = colNum * hexInnerRadius * 2 + rowOffset;
-        float localY = -rowNum * hexOuterRadius * 3 / 2;
+        float rowOffset = rowNum % 2 == 0 ? 0 : _hexInnerRadius;
+        float localX = colNum * _hexInnerRadius * 2 + rowOffset;
+        float localY = -rowNum * _hexOuterRadius * 3 / 2;
 
         return new Vector3(localX, localY);
     }
@@ -326,7 +332,7 @@ public class BubbleGrid : MonoBehaviour
     /**
      * Puts the given Bubble object to the specified coordinates in the grid.
      */
-    public void SetBubble(Vector2Int coord, Bubble bubble)
+    private void SetBubble(Vector2Int coord, Bubble bubble)
     {
         _bubbleGrid[coord.x][coord.y] = bubble;
     }

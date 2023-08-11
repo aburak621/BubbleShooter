@@ -134,9 +134,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0e91f3ae1ea74d24e8704bc4094e9f8f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  gridCoordinate: {x: 0, y: 0}
-  throwingBubble: 0
   bubbleColor: 0
+  speed: 30
+  gridCoordinate: {x: 0, y: 0}
+  currentBubble: 0
+  thrown: 0
 --- !u!50 &6910011793237348351
 Rigidbody2D:
   serializedVersion: 4
