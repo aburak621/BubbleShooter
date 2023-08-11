@@ -44,12 +44,12 @@ public class BubbleGrid : MonoBehaviour
         _mainCamera = Camera.main;
 
         CalculateSizes();
-        SetInitialGridPosition();
+        transform.position = CalculateGridPosition(rowCount);
 
         FillGridRandomly();
         InitializeGrid();
     }
-    
+
     // TODO: Move the grid up AND down. Stop bubbles from going past the first row. 
 
     /**
@@ -67,10 +67,10 @@ public class BubbleGrid : MonoBehaviour
     /**
      * Sets the grid's initial position according to its height and width.
      */
-    private void SetInitialGridPosition()
+    private Vector3 CalculateGridPosition(int rowCount, float yOffset = 0)
     {
         float gridX = -_mainCamera.orthographicSize * _mainCamera.aspect + _hexInnerRadius;
-        float gridY = _mainCamera.orthographicSize - _hexInnerRadius;
+        float gridY = _mainCamera.orthographicSize - yOffset - _hexInnerRadius;
         float gridHeight = (rowCount - 1) * _hexOuterRadius * 3 / 2 + _hexInnerRadius;
         if (gridHeight > _mainCamera.orthographicSize)
         {
@@ -79,7 +79,7 @@ public class BubbleGrid : MonoBehaviour
             gridY += gridHeight - gridOffset - _hexInnerRadius;
         }
 
-        transform.position = new Vector3(gridX, gridY, 0.0f);
+        return new Vector3(gridX, gridY, 0.0f);
     }
 
     /**
@@ -149,6 +149,11 @@ public class BubbleGrid : MonoBehaviour
                                              ? _evenNeighborOffsets[sideIndex]
                                              : _oddNeighborOffsets[sideIndex]);
 
+        if (newBubbleCoordinate.x >= _bubbleGrid.Count)
+        {
+            AddEmptyRow();
+        }
+
         // If the hex is not empty or out of bounds, find the closest hex
         for (int i = 1; i <= 6 && !CheckForBounds(newBubbleCoordinate) || GetBubble(newBubbleCoordinate) != null; i++)
         {
@@ -169,14 +174,15 @@ public class BubbleGrid : MonoBehaviour
         thrownBubble.GetComponent<Rigidbody2D>().velocity = Vector2.zero;
         thrownBubble.gridCoordinate = newBubbleCoordinate;
         SetBubble(thrownBubble.gridCoordinate, thrownBubble);
-        
+
         // Interpolate the bubble to its grid position and handle the matching
         Vector3 initialPosition = thrownBubble.transform.localPosition;
         Vector3 targetPosition = CalculateLocalPosition(newBubbleCoordinate.x, newBubbleCoordinate.y);
         StartCoroutine(InterpolateBubblePosition(thrownBubble, initialPosition, targetPosition, 0.1f));
     }
 
-    private IEnumerator InterpolateBubblePosition(Bubble bubble, Vector3 initialPosition, Vector3 targetPosition, float duration)
+    private IEnumerator InterpolateBubblePosition(Bubble bubble, Vector3 initialPosition, Vector3 targetPosition,
+        float duration)
     {
         float elapsedTime = 0.0f;
 
@@ -197,6 +203,53 @@ public class BubbleGrid : MonoBehaviour
         HandleMatch(bubble.gridCoordinate);
         // Send the placed signal
         BubblePlaced?.Invoke(this, EventArgs.Empty);
+
+        UpdateGridPosition();
+    }
+
+    private void UpdateGridPosition()
+    {
+        Vector3 initialPosition = transform.position;
+
+        int lastNonEmptyRow = -1;
+        for (int i = _bubbleGrid.Count - 1; i >= 0; i--)
+        {
+            for (int j = 0; j < _bubbleGrid[i].Count; j++)
+            {
+                if (_bubbleGrid[i][j] != null)
+                {
+                    lastNonEmptyRow = i;
+                    break;
+                }
+            }
+
+            if (lastNonEmptyRow != -1)
+            {
+                break;
+            }
+        }
+
+        Vector3 targetPosition = CalculateGridPosition(lastNonEmptyRow + 1);
+
+        StartCoroutine(InterpolateGridPosition(initialPosition, targetPosition, 0.5f));
+    }
+
+    private IEnumerator InterpolateGridPosition(Vector3 initialPosition, Vector3 targetPosition, float duration)
+    {
+        float elapsedTime = 0.0f;
+
+        while (elapsedTime < duration)
+        {
+            float ratio = elapsedTime / duration;
+
+            transform.position = Vector3.Lerp(initialPosition, targetPosition, ratio);
+
+            elapsedTime += Time.deltaTime;
+
+            yield return null;
+        }
+
+        transform.position = targetPosition;
     }
 
     /**
@@ -267,7 +320,7 @@ public class BubbleGrid : MonoBehaviour
             {
                 continue;
             }
-            
+
             DfsIslands(rootBubble.gridCoordinate, connectedToRoot, false);
         }
 
