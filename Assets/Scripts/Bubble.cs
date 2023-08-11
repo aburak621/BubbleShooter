@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using Unity.Mathematics;
 using UnityEngine;
 using Random = UnityEngine.Random;
 
@@ -14,7 +15,7 @@ public class Bubble : MonoBehaviour
     }
 
     [SerializeField] private BubbleColor bubbleColor = BubbleColor.Red;
-    [SerializeField] private float speed = 30.0f;
+    [SerializeField] private float speed = 20.0f;
 
     public Vector2Int gridCoordinate;
     public bool currentBubble = false;
@@ -38,14 +39,13 @@ public class Bubble : MonoBehaviour
 
     private void Start()
     {
+        _parentGrid = GameObject.FindWithTag(nameof(BubbleGrid)).GetComponent<BubbleGrid>();
         _mainCamera = Camera.main;
         _screenHalfWidth = _mainCamera.orthographicSize * _mainCamera.aspect;
     }
 
     private void OnTriggerEnter2D(Collider2D other)
     {
-        _parentGrid = GameObject.FindWithTag(nameof(BubbleGrid)).GetComponent<BubbleGrid>();
-        
         if (!currentBubble)
         {
             return;
@@ -64,13 +64,21 @@ public class Bubble : MonoBehaviour
                 ShootBubble();
             }
 
-            if (transform.position.x <= -_screenHalfWidth + _colliderRadius ||
-                transform.position.x >= _screenHalfWidth - _colliderRadius)
+            if (transform.position.x <= -_screenHalfWidth + _colliderRadius)
             {
-                _velocity.x = -_velocity.x;
+                _velocity.x = math.abs(_velocity.x);
+            }
+            if (transform.position.x >= _screenHalfWidth - _colliderRadius)
+            {
+                _velocity.x = -math.abs(_velocity.x);
             }
 
             _rb.velocity = _velocity;
+
+            if (transform.position.y > _parentGrid.transform.position.y)
+            {
+                _parentGrid.HandleNewBubble(this, null);
+            }
         }
     }
 
@@ -79,7 +87,9 @@ public class Bubble : MonoBehaviour
      */
     private void ShootBubble()
     {
-        Vector3 direction = (_mainCamera.ScreenToWorldPoint(Input.mousePosition) - transform.position).normalized;
+        Vector3 direction = (_mainCamera.ScreenToWorldPoint(Input.mousePosition) - transform.position);
+        direction.z = 0.0f;
+        direction = direction.normalized;
         _velocity = direction * speed;
         thrown = true;
     }

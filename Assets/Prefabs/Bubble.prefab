@@ -121,7 +121,7 @@ CircleCollider2D:
   m_UsedByComposite: 0
   m_Offset: {x: 0, y: 0}
   serializedVersion: 2
-  m_Radius: 0.35
+  m_Radius: 0.42
 --- !u!114 &6075863305231306302
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -135,7 +135,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   bubbleColor: 0
-  speed: 30
+  speed: 20
   gridCoordinate: {x: 0, y: 0}
   currentBubble: 0
   thrown: 0

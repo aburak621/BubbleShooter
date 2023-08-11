@@ -50,8 +50,6 @@ public class BubbleGrid : MonoBehaviour
         InitializeGrid();
     }
 
-    // TODO: Move the grid up AND down. Stop bubbles from going past the first row. 
-
     /**
      * Calculates what size the bubbles should be according to the camera's size and column count.
      */
@@ -127,46 +125,74 @@ public class BubbleGrid : MonoBehaviour
      */
     public void HandleNewBubble(Bubble thrownBubble, Bubble gridBubble)
     {
-        // Calculate in which angle the ball hit
-        Vector2 differenceVector = thrownBubble.transform.localPosition - gridBubble.transform.localPosition;
-        float angleRadians = Mathf.Atan2(differenceVector.y, differenceVector.x);
-        float angleDegrees = angleRadians * Mathf.Rad2Deg;
-        if (angleDegrees < 0)
+        Vector2Int newBubbleCoordinate = new Vector2Int();
+
+        if (gridBubble != null)
         {
-            angleDegrees += 360;
-        }
+            // Calculate in which angle the bubble hit
+            Vector2 differenceVector = thrownBubble.transform.localPosition - gridBubble.transform.localPosition;
+            float angleRadians = Mathf.Atan2(differenceVector.y, differenceVector.x);
+            float angleDegrees = angleRadians * Mathf.Rad2Deg;
+            if (angleDegrees < 0)
+            {
+                angleDegrees += 360;
+            }
 
-        // Place it to the grid accordingly
-        // Sides start from the hexagon's right side and goes counter clockwise
-        // 0 => right, 1 => upper right, 2 => upper left, 3 => left, 4 => lower left, 5 => lower right
-        float side = ((angleDegrees + 30) % 360) / 60;
-        int sideIndex = (int)((angleDegrees + 30) % 360) / 60;
-        // If that side is not empty we will offset it to the closes other side
-        int sideOffset = side % 1 >= 0.5 ? 1 : 5;
+            // Place the bubble to the grid accordingly
+            // Sides start from the hexagon's right side and goes counter clockwise
+            // 0 => right, 1 => upper right, 2 => upper left, 3 => left, 4 => lower left, 5 => lower right
+            float side = ((angleDegrees + 30) % 360) / 60;
+            int sideIndex = (int)((angleDegrees + 30) % 360) / 60;
+            // If that side is not empty we will offset it to the closes other side
+            int sideOffset = side % 1 >= 0.5 ? 1 : 5;
 
-        Vector2Int newBubbleCoordinate = gridBubble.gridCoordinate +
-                                         (gridBubble.gridCoordinate.x % 2 == 0
-                                             ? _evenNeighborOffsets[sideIndex]
-                                             : _oddNeighborOffsets[sideIndex]);
-
-        if (newBubbleCoordinate.x >= _bubbleGrid.Count)
-        {
-            AddEmptyRow();
-        }
-
-        // If the hex is not empty or out of bounds, find the closest hex
-        for (int i = 1; i <= 6 && !CheckForBounds(newBubbleCoordinate) || GetBubble(newBubbleCoordinate) != null; i++)
-        {
             newBubbleCoordinate = gridBubble.gridCoordinate +
                                   (gridBubble.gridCoordinate.x % 2 == 0
-                                      ? _evenNeighborOffsets[(sideIndex + sideOffset * i) % 6]
-                                      : _oddNeighborOffsets[(sideIndex + sideOffset * i) % 6]);
+                                      ? _evenNeighborOffsets[sideIndex]
+                                      : _oddNeighborOffsets[sideIndex]);
+
+            if (newBubbleCoordinate.x >= _bubbleGrid.Count)
+            {
+                AddEmptyRow();
+            }
+
+            // If the hex is not empty or out of bounds, find the closest hex
+            for (int i = 1;
+                 i <= 6 && !CheckForBounds(newBubbleCoordinate) || GetBubble(newBubbleCoordinate) != null;
+                 i++)
+            {
+                newBubbleCoordinate = gridBubble.gridCoordinate +
+                                      (gridBubble.gridCoordinate.x % 2 == 0
+                                          ? _evenNeighborOffsets[(sideIndex + sideOffset * i) % 6]
+                                          : _oddNeighborOffsets[(sideIndex + sideOffset * i) % 6]);
+            }
+
+            if (newBubbleCoordinate.x >= _bubbleGrid.Count)
+            {
+                AddEmptyRow();
+            }
+        }
+        else
+        {
+            float minDistance = 999.0f;
+
+            for (int i = 0; i < _bubbleGrid[0].Count; i++)
+            {
+                if (_bubbleGrid[0][i] != null)
+                {
+                    continue;
+                }
+
+                float distance = (thrownBubble.transform.position - (CalculateLocalPosition(0, i) + transform.position))
+                    .magnitude;
+                if (distance < minDistance)
+                {
+                    minDistance = distance;
+                    newBubbleCoordinate = new Vector2Int(0, i);
+                }
+            }
         }
 
-        if (newBubbleCoordinate.x >= _bubbleGrid.Count)
-        {
-            AddEmptyRow();
-        }
 
         thrownBubble.transform.SetParent(transform);
         thrownBubble.currentBubble = false;
