@@ -128,7 +128,7 @@ public class BubbleGrid : MonoBehaviour
     public void HandleNewBubble(Bubble thrownBubble, Bubble gridBubble)
     {
         // Calculate in which angle the ball hit
-        Vector2 differenceVector = thrownBubble.transform.position - gridBubble.transform.position;
+        Vector2 differenceVector = thrownBubble.transform.localPosition - gridBubble.transform.localPosition;
         float angleRadians = Mathf.Atan2(differenceVector.y, differenceVector.x);
         float angleDegrees = angleRadians * Mathf.Rad2Deg;
         if (angleDegrees < 0)
@@ -149,11 +149,6 @@ public class BubbleGrid : MonoBehaviour
                                              ? _evenNeighborOffsets[sideIndex]
                                              : _oddNeighborOffsets[sideIndex]);
 
-        if (newBubbleCoordinate.x >= _bubbleGrid.Count)
-        {
-            AddEmptyRow();
-        }
-
         // If the hex is not empty or out of bounds, find the closest hex
         for (int i = 1; i <= 6 && !CheckForBounds(newBubbleCoordinate) || GetBubble(newBubbleCoordinate) != null; i++)
         {
@@ -163,16 +158,44 @@ public class BubbleGrid : MonoBehaviour
                                       : _oddNeighborOffsets[(sideIndex + sideOffset * i) % 6]);
         }
 
+        if (newBubbleCoordinate.x >= _bubbleGrid.Count)
+        {
+            AddEmptyRow();
+        }
+
         thrownBubble.transform.SetParent(transform);
-        thrownBubble.transform.localPosition = CalculateLocalPosition(newBubbleCoordinate.x, newBubbleCoordinate.y);
         thrownBubble.currentBubble = false;
         thrownBubble.thrown = false;
         thrownBubble.GetComponent<Rigidbody2D>().velocity = Vector2.zero;
         thrownBubble.gridCoordinate = newBubbleCoordinate;
         SetBubble(thrownBubble.gridCoordinate, thrownBubble);
-
-        HandleMatch(thrownBubble.gridCoordinate);
         
+        // Interpolate the bubble to its grid position and handle the matching
+        Vector3 initialPosition = thrownBubble.transform.localPosition;
+        Vector3 targetPosition = CalculateLocalPosition(newBubbleCoordinate.x, newBubbleCoordinate.y);
+        StartCoroutine(InterpolateBubblePosition(thrownBubble, initialPosition, targetPosition, 0.1f));
+    }
+
+    private IEnumerator InterpolateBubblePosition(Bubble bubble, Vector3 initialPosition, Vector3 targetPosition, float duration)
+    {
+        float elapsedTime = 0.0f;
+
+        while (elapsedTime < duration)
+        {
+            float ratio = elapsedTime / duration;
+
+            bubble.transform.localPosition = Vector3.Lerp(initialPosition, targetPosition, ratio);
+
+            elapsedTime += Time.deltaTime;
+
+            yield return null;
+        }
+
+        bubble.transform.localPosition = targetPosition;
+
+        // Handle the matching at the end of the lerp
+        HandleMatch(bubble.gridCoordinate);
+        // Send the placed signal
         BubblePlaced?.Invoke(this, EventArgs.Empty);
     }
 

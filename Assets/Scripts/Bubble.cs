@@ -44,12 +44,13 @@ public class Bubble : MonoBehaviour
 
     private void OnTriggerEnter2D(Collider2D other)
     {
+        _parentGrid = GameObject.FindWithTag(nameof(BubbleGrid)).GetComponent<BubbleGrid>();
+        
         if (!currentBubble)
         {
             return;
         }
 
-        _parentGrid = GameObject.FindWithTag(nameof(BubbleGrid)).GetComponent<BubbleGrid>();
         transform.SetParent(_parentGrid.transform);
         _parentGrid.HandleNewBubble(this, other.transform.GetComponent<Bubble>());
     }
@@ -60,7 +61,6 @@ public class Bubble : MonoBehaviour
         {
             if (Input.GetMouseButtonDown(0) && !thrown)
             {
-                Debug.Log("Bruh");
                 ShootBubble();
             }
 
@@ -77,7 +77,7 @@ public class Bubble : MonoBehaviour
     /**
      a Shoots the bubble in the direction of the mouse.
      */
-    public void ShootBubble()
+    private void ShootBubble()
     {
         Vector3 direction = (_mainCamera.ScreenToWorldPoint(Input.mousePosition) - transform.position).normalized;
         _velocity = direction * speed;
