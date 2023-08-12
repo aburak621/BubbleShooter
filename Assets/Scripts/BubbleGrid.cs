@@ -204,7 +204,7 @@ public class BubbleGrid : MonoBehaviour
         // Interpolate the bubble to its grid position and handle the matching
         Vector3 initialPosition = thrownBubble.transform.localPosition;
         Vector3 targetPosition = CalculateLocalPosition(newBubbleCoordinate.x, newBubbleCoordinate.y);
-        StartCoroutine(InterpolateBubblePosition(thrownBubble, initialPosition, targetPosition, 0.1f));
+        StartCoroutine(InterpolateBubblePosition(thrownBubble, initialPosition, targetPosition, 0.075f));
     }
 
     private IEnumerator InterpolateBubblePosition(Bubble bubble, Vector3 initialPosition, Vector3 targetPosition,
@@ -224,6 +224,8 @@ public class BubbleGrid : MonoBehaviour
         }
 
         bubble.transform.localPosition = targetPosition;
+
+        yield return new WaitForSeconds(0.1f);
 
         // Handle the matching at the end of the lerp
         HandleMatch(bubble.gridCoordinate);
@@ -379,7 +381,21 @@ public class BubbleGrid : MonoBehaviour
     private void DestroyBubble(Bubble bubble)
     {
         SetBubble(bubble.gridCoordinate, null);
-        Destroy(bubble.gameObject);
+
+        GameObject obj = bubble.gameObject;
+        
+        Rigidbody2D rb = obj.gameObject.GetComponent<Rigidbody2D>();
+        rb.bodyType = RigidbodyType2D.Dynamic;
+        float speed = 3.0f;
+        rb.velocity = new Vector2(Random.Range(-speed, speed), Random.Range(speed * 0.5f, speed));
+        
+        CircleCollider2D circleCollider = obj.gameObject.GetComponent<CircleCollider2D>();
+        circleCollider.enabled = false;
+        
+        SpriteRenderer sprite = obj.gameObject.GetComponent<SpriteRenderer>();
+        sprite.sortingOrder = 1;
+        
+        Destroy(obj.gameObject, 2.0f);
     }
 
     /**

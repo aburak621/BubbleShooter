@@ -33,7 +33,7 @@ public class Bubble : MonoBehaviour
     {
         _spriteRenderer = GetComponent<SpriteRenderer>();
         SetBubbleColor(bubbleColor);
-        _colliderRadius = GetComponent<CircleCollider2D>().radius;
+        _colliderRadius = GetComponent<CircleCollider2D>().radius * transform.localScale.x;
         _rb = GetComponent<Rigidbody2D>();
     }
 
