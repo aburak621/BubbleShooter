@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using Unity.Mathematics;
 using UnityEngine;
+using UnityEngine.Serialization;
 using Random = UnityEngine.Random;
 
 public class Bubble : MonoBehaviour
@@ -20,21 +21,26 @@ public class Bubble : MonoBehaviour
     public Vector2Int gridCoordinate;
     public bool currentBubble = false;
     public bool thrown = false;
+    public Rigidbody2D rb;
+    public CircleCollider2D circleCollider;
+    public TrailRenderer trail;
+    public SpriteRenderer spriteRenderer;
 
-    private SpriteRenderer _spriteRenderer;
     private BubbleGrid _parentGrid;
     private Vector2 _velocity;
     private float _colliderRadius;
     private float _screenHalfWidth;
     private Camera _mainCamera;
-    private Rigidbody2D _rb;
 
     private void Awake()
     {
-        _spriteRenderer = GetComponent<SpriteRenderer>();
-        SetBubbleColor(bubbleColor);
+        spriteRenderer = GetComponent<SpriteRenderer>();
         _colliderRadius = GetComponent<CircleCollider2D>().radius * transform.localScale.x;
-        _rb = GetComponent<Rigidbody2D>();
+        rb = GetComponent<Rigidbody2D>();
+        circleCollider = GetComponent<CircleCollider2D>();
+        trail = GetComponent<TrailRenderer>();
+        
+        SetBubbleColor(bubbleColor);
     }
 
     private void Start()
@@ -73,7 +79,7 @@ public class Bubble : MonoBehaviour
                 _velocity.x = -math.abs(_velocity.x);
             }
 
-            _rb.velocity = _velocity;
+            rb.velocity = _velocity;
 
             if (transform.position.y > _parentGrid.transform.position.y)
             {
@@ -92,6 +98,7 @@ public class Bubble : MonoBehaviour
         direction = direction.normalized;
         _velocity = direction * speed;
         thrown = true;
+        trail.enabled = true;
     }
 
     /**
@@ -99,11 +106,16 @@ public class Bubble : MonoBehaviour
      */
     private void OnValidate()
     {
-        if (_spriteRenderer == null)
+        if (spriteRenderer == null)
         {
-            _spriteRenderer = GetComponent<SpriteRenderer>();
+            spriteRenderer = GetComponent<SpriteRenderer>();
         }
 
+        if (trail == null)
+        {
+            trail = GetComponent<TrailRenderer>();
+        }
+    
         SetBubbleColor(bubbleColor);
     }
 
@@ -113,20 +125,28 @@ public class Bubble : MonoBehaviour
     public Bubble SetBubbleColor(BubbleColor color)
     {
         bubbleColor = color;
+        
         switch (bubbleColor)
         {
             case BubbleColor.Red:
-                _spriteRenderer.color = Color.red;
+                SetColors(Color.red);
                 break;
             case BubbleColor.Green:
-                _spriteRenderer.color = Color.green;
+                SetColors(Color.green);
                 break;
             case BubbleColor.Blue:
-                _spriteRenderer.color = Color.blue;
+                SetColors(Color.blue);
                 break;
         }
 
         return this;
+    }
+
+    private void SetColors(Color color)
+    {
+        spriteRenderer.color = color;
+        trail.startColor = color;
+        trail.endColor = color;
     }
 
     /**
