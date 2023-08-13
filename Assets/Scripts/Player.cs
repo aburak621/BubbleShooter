@@ -29,6 +29,9 @@ public class Player : MonoBehaviour
         ReadyNewBubble();
     }
 
+    /**
+     * Creates a new bubble for player to shoot.
+     */
     private void ReadyNewBubble()
     {
         _currentBubble = Instantiate(

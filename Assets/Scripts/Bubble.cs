@@ -8,38 +8,45 @@ using Random = UnityEngine.Random;
 
 public class Bubble : MonoBehaviour
 {
-    public enum BubbleColor
+    [SerializeField] private List<Color> colors = new List<Color>
     {
-        Red,
-        Blue,
-        Green
-    }
+        Color.red,
+        Color.blue,
+        Color.green
+    };
 
     [SerializeField] private BubbleColor bubbleColor = BubbleColor.Red;
     [SerializeField] private float speed = 20.0f;
 
+    public enum BubbleColor
+    {
+        Red,
+        Blue,
+        Green,
+    }
+
     public Vector2Int gridCoordinate;
-    public bool currentBubble = false;
-    public bool thrown = false;
     public Rigidbody2D rb;
     public CircleCollider2D circleCollider;
     public TrailRenderer trail;
     public SpriteRenderer spriteRenderer;
+    public bool currentBubble = false;
+    public bool thrown = false;
 
     private BubbleGrid _parentGrid;
     private Vector2 _velocity;
+    private Camera _mainCamera;
     private float _colliderRadius;
     private float _screenHalfWidth;
-    private Camera _mainCamera;
 
     private void Awake()
     {
         spriteRenderer = GetComponent<SpriteRenderer>();
-        _colliderRadius = GetComponent<CircleCollider2D>().radius * transform.localScale.x;
         rb = GetComponent<Rigidbody2D>();
-        circleCollider = GetComponent<CircleCollider2D>();
         trail = GetComponent<TrailRenderer>();
-        
+        circleCollider = GetComponent<CircleCollider2D>();
+        _colliderRadius = circleCollider.radius * transform.localScale.x;
+
         SetBubbleColor(bubbleColor);
     }
 
@@ -52,11 +59,14 @@ public class Bubble : MonoBehaviour
 
     private void OnTriggerEnter2D(Collider2D other)
     {
+        // If the bubble isn't the currently thrown one, skip
         if (!currentBubble)
         {
             return;
         }
 
+        currentBubble = false;
+        // Set the new bubble's parent as the bubble grid and call the function for handling the new bubble
         transform.SetParent(_parentGrid.transform);
         _parentGrid.HandleNewBubble(this, other.transform.GetComponent<Bubble>());
     }
@@ -65,22 +75,30 @@ public class Bubble : MonoBehaviour
     {
         if (currentBubble)
         {
+            // Check for player's click
             if (Input.GetMouseButtonDown(0) && !thrown)
             {
                 ShootBubble();
             }
 
+            // Flip the bubble's x velocity when it touches a wall
             if (transform.position.x <= -_screenHalfWidth + _colliderRadius)
             {
+                transform.position = new Vector3(-_screenHalfWidth + _colliderRadius, transform.position.y,
+                    transform.position.z);
                 _velocity.x = math.abs(_velocity.x);
             }
+
             if (transform.position.x >= _screenHalfWidth - _colliderRadius)
             {
+                transform.position = new Vector3(_screenHalfWidth - _colliderRadius, transform.position.y,
+                    transform.position.z);
                 _velocity.x = -math.abs(_velocity.x);
             }
 
             rb.velocity = _velocity;
 
+            // If the bubble goes beyond the first row of the grid, place it there
             if (transform.position.y > _parentGrid.transform.position.y)
             {
                 _parentGrid.HandleNewBubble(this, null);
@@ -89,12 +107,13 @@ public class Bubble : MonoBehaviour
     }
 
     /**
-     a Shoots the bubble in the direction of the mouse.
+     * Shoots the bubble in the direction of the mouse.
      */
     private void ShootBubble()
     {
         Vector3 direction = (_mainCamera.ScreenToWorldPoint(Input.mousePosition) - transform.position);
         direction.z = 0.0f;
+        direction.y = Mathf.Abs(direction.y);
         direction = direction.normalized;
         _velocity = direction * speed;
         thrown = true;
@@ -102,7 +121,7 @@ public class Bubble : MonoBehaviour
     }
 
     /**
-     * Change the sprite color in the editor when the bubbleColor enum changes.
+     * Changes the sprite color in the editor when you change the bubbleColor enum.
      */
     private void OnValidate()
     {
@@ -115,33 +134,24 @@ public class Bubble : MonoBehaviour
         {
             trail = GetComponent<TrailRenderer>();
         }
-    
+
         SetBubbleColor(bubbleColor);
     }
 
     /**
-     * Change the color of the SpriteRenderer according to the bubbleColor enum.
+     * Changes the color of the SpriteRenderer according to the given bubbleColor enum.
      */
     public Bubble SetBubbleColor(BubbleColor color)
     {
         bubbleColor = color;
-        
-        switch (bubbleColor)
-        {
-            case BubbleColor.Red:
-                SetColors(Color.red);
-                break;
-            case BubbleColor.Green:
-                SetColors(Color.green);
-                break;
-            case BubbleColor.Blue:
-                SetColors(Color.blue);
-                break;
-        }
+        SetColors(colors[(int)color]);
 
         return this;
     }
 
+    /**
+     * Sets the sprite and trail's colors to the given color.
+     */
     private void SetColors(Color color)
     {
         spriteRenderer.color = color;
@@ -150,7 +160,7 @@ public class Bubble : MonoBehaviour
     }
 
     /**
-     * Sets a random color.
+     * Sets a random color for the bubble.
      */
     public void SetRandomColor()
     {

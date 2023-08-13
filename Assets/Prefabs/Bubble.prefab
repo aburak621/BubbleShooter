@@ -31,7 +31,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 0.14774096, y: 0.14774096, z: 1}
+  m_LocalScale: {x: 0.103965856, y: 0.103965856, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
@@ -135,15 +135,19 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0e91f3ae1ea74d24e8704bc4094e9f8f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  colors:
+  - {r: 1, g: 0, b: 0, a: 1}
+  - {r: 0, g: 0, b: 1, a: 1}
+  - {r: 0, g: 1, b: 0, a: 1}
   bubbleColor: 0
   speed: 20
   gridCoordinate: {x: 0, y: 0}
-  currentBubble: 0
-  thrown: 0
   rb: {fileID: 0}
   circleCollider: {fileID: 0}
   trail: {fileID: 4769501663157616366}
   spriteRenderer: {fileID: 3552118346250970111}
+  currentBubble: 0
+  thrown: 0
 --- !u!50 &6910011793237348351
 Rigidbody2D:
   serializedVersion: 4
@@ -167,9 +171,9 @@ Rigidbody2D:
   m_ExcludeLayers:
     serializedVersion: 2
     m_Bits: 0
-  m_Interpolate: 0
+  m_Interpolate: 1
   m_SleepingMode: 1
-  m_CollisionDetection: 0
+  m_CollisionDetection: 1
   m_Constraints: 0
 --- !u!96 &4769501663157616366
 TrailRenderer:
