@@ -262,6 +262,11 @@ public class BubbleGrid : MonoBehaviour
         thrownBubble.thrown = false;
         thrownBubble.trail.enabled = false;
         thrownBubble.rb.velocity = Vector2.zero;
+        if (GetBubble(newBubbleCoordinate) != null)
+        {
+            Destroy(thrownBubble);
+            return;
+        }
         thrownBubble.gridCoordinate = newBubbleCoordinate;
         SetBubble(thrownBubble.gridCoordinate, thrownBubble);
 

@@ -140,7 +140,7 @@ MonoBehaviour:
   - {r: 0, g: 0, b: 1, a: 1}
   - {r: 0, g: 1, b: 0, a: 1}
   bubbleColor: 0
-  speed: 20
+  speed: 30
   gridCoordinate: {x: 0, y: 0}
   rb: {fileID: 0}
   circleCollider: {fileID: 0}
